@@ -2,6 +2,11 @@ import argparse
 from src.pdf_handler import PDFHandler
 from src.utils import setup_environment, setup_logging
 import logging
+import pytesseract
+import os
+
+# Configura la ruta de Tesseract
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 def main():
     # Configurar el entorno y logging
@@ -17,10 +22,27 @@ def main():
 
     args = parser.parse_args()
 
+    # Verificar que el archivo existe
+    if not os.path.exists(args.input_pdf):
+        logger.error(f"El archivo {args.input_pdf} no existe")
+        return
+
     # Procesar el PDF
     try:
+        logger.info(f"Iniciando procesamiento del archivo: {args.input_pdf}")
         pdf_handler = PDFHandler()
         pdf_handler.split_pdf(args.input_pdf, args.output_pattern)
+        
+        # Verificar los resultados
+        output_dir = os.path.join(os.getcwd(), 'output')
+        if os.path.exists(output_dir):
+            files = os.listdir(output_dir)
+            logger.info(f"Archivos generados en output/: {len(files)}")
+            for file in files:
+                logger.info(f"  - {file}")
+        else:
+            logger.warning("No se encontró el directorio output/")
+            
         logger.info("Proceso completado exitosamente")
     except Exception as e:
         logger.error(f"Error durante el procesamiento: {str(e)}")

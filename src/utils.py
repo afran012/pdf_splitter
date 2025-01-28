@@ -1,7 +1,6 @@
 import os
 import logging
-import logging.config
-from config.config import LOGGING_CONFIG, LOGS_DIR, OUTPUT_DIR, TEMP_DIR
+from config.config import LOGS_DIR, OUTPUT_DIR, TEMP_DIR
 
 def setup_environment():
     """
@@ -14,4 +13,11 @@ def setup_logging():
     """
     Configura el sistema de logging
     """
-    logging.config.dictConfig(LOGGING_CONFIG)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+        handlers=[
+            logging.StreamHandler(),  # Envía logs a la consola
+            logging.FileHandler(os.path.join(LOGS_DIR, 'pdf_splitter.log'))  # Envía logs a un archivo
+        ]
+    )

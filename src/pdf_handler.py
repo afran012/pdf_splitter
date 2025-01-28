@@ -1,8 +1,9 @@
 from pdf2image import convert_from_path
 from PyPDF2 import PdfReader, PdfWriter
+from PIL import Image
 import os
 import logging
-from PIL import Image
+import re
 from .ocr_processor import OCRProcessor
 from config.config import OCR_CONFIG, OUTPUT_DIR, TEMP_DIR
 
@@ -34,13 +35,67 @@ class PDFHandler:
         logger.info(f"Iniciando búsqueda de puntos de división en {total_images} páginas")
 
         for i, image in enumerate(images):
-            logger.debug(f"Procesando página {i+1} de {total_images}")
+            logger.info(f"Procesando página {i+1} de {total_images}")
+            
+            # Obtener información de depuración
+            debug_info = self.ocr_processor.get_debug_info(image)
+            logger.debug(f"Información de depuración página {i+1}: {debug_info}")
+            
             if self.ocr_processor.detect_liquidacion_provisional(image):
                 split_points.append(i)
                 logger.info(f"Encontrado punto de división en página {i+1}")
+            else:
+                logger.debug(f"Texto detectado en página {i+1}: {debug_info['header_text']}")
 
         logger.info(f"Búsqueda completada. Encontrados {len(split_points)} puntos de división")
         return split_points
+
+    def analyze_pdf_text(self, input_path: str):
+        """
+        Analiza el texto detectado en cada página del PDF y genera un reporte detallado
+        """
+        logger.info(f"Iniciando análisis de texto para {input_path}")
+        
+        # Convertir PDF a imágenes
+        images = self.convert_pdf_to_images(input_path)
+        if not images:
+            logger.error("No se pudieron extraer imágenes del PDF")
+            return
+        
+        # Crear directorio de output si no existe
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        
+        # Archivo para guardar el análisis
+        analysis_file = os.path.join(OUTPUT_DIR, "analisis_texto.txt")
+        
+        with open(analysis_file, 'w', encoding='utf-8') as f:
+            f.write("ANÁLISIS DE TEXTO DETECTADO EN PDF\n")
+            f.write("=" * 50 + "\n\n")
+            
+            for i, image in enumerate(images):
+                f.write(f"PÁGINA {i+1}\n")
+                f.write("-" * 30 + "\n")
+                
+                # Obtener información de depuración
+                debug_info = self.ocr_processor.get_debug_info(image)
+                
+                # Escribir el texto detectado
+                f.write("Texto detectado en encabezado:\n")
+                f.write(f"{debug_info['header_text']}\n\n")
+                
+                # Escribir información sobre textos similares encontrados
+                if debug_info['similar_text_found']:
+                    f.write("Textos similares encontrados:\n")
+                    for text in debug_info['similar_text_found']:
+                        f.write(f"- {text}\n")
+                
+                f.write("\nPatrones buscados:\n")
+                for pattern in debug_info['patterns_tried']:
+                    f.write(f"- {pattern}\n")
+                
+                f.write("\n" + "=" * 50 + "\n\n")
+        
+        logger.info(f"Análisis guardado en {analysis_file}")
 
     def split_pdf(self, input_path: str, output_pattern: str = "liquidacion_{}.pdf"):
         """
@@ -54,26 +109,19 @@ class PDFHandler:
             return
 
         # Crear directorios necesarios
-        try:
-            os.makedirs(TEMP_DIR, exist_ok=True)
-            os.makedirs(OUTPUT_DIR, exist_ok=True)
-            logger.info("Directorios de trabajo creados correctamente")
-        except Exception as e:
-            logger.error(f"Error al crear directorios: {str(e)}")
-            return
+        os.makedirs(TEMP_DIR, exist_ok=True)
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
 
         # Convertir PDF a imágenes
-        logger.info("Iniciando conversión de PDF a imágenes...")
         images = self.convert_pdf_to_images(input_path)
         if not images:
             logger.error("No se pudieron extraer imágenes del PDF")
             return
 
         # Encontrar puntos de división
-        logger.info("Buscando puntos de división en el documento...")
         split_points = self.find_split_points(images)
         if not split_points:
-            logger.warning("No se encontraron puntos de división en el documento")
+            logger.warning("No se encontraron puntos de división")
             return
 
         # Dividir el PDF
@@ -95,16 +143,11 @@ class PDFHandler:
                 output_path = os.path.join(OUTPUT_DIR, output_pattern.format(i))
                 with open(output_path, 'wb') as output_file:
                     writer.write(output_file)
-                logger.info(f"Creado archivo {output_path} ({end-start} páginas)")
-
-            logger.info(f"Proceso de división completado. {len(split_points)} archivos creados")
+                logger.info(f"Creado archivo {output_path}")
 
         except Exception as e:
             logger.error(f"Error durante la división del PDF: {str(e)}")
             return
-        finally:
-            # Limpiar archivos temporales
-            self.cleanup()
 
     def cleanup(self):
         """

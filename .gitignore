@@ -171,6 +171,80 @@ cython_debug/
 .pypirc
 
 
+# Entornos virtuales
+venv/
+env/
+ENV/
+.env/
+.venv/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Directorios del proyecto
+logs/*
+!logs/.gitkeep
+output/*
+!output/.gitkeep
+temp/
+
+# Archivos temporales y de sistema
+*.log
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+.DS_Store
+Thumbs.db
+.directory
+
+# IDEs y editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+*.sublime-workspace
+*.sublime-project
+
+# Archivos de configuración local
+.env
+.env.local
+.env.*.local
+config.local.py
+
+# Archivos de caché de Tesseract
+*.traineddata
+
+# Archivos de dependencias
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+
+
 2-TITULOS-15-DE-NOVIEMBRE-2024-1-10.pdf
 2-TITULOS-15-DE-NOVIEMBRE-2024-1-30.pdf
 2-TITULOS-15-DE-NOVIEMBRE-2024.pdf
